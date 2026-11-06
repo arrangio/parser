@@ -16,11 +16,14 @@ const (
 	IDENT = "IDENT" // desk, room, axis, x, y, min
 	INT   = "INT"   // 100, 5000, 0
 
-	HASH   = "#"  // for tags: #furniture
-	AT     = "@"  // for positions: @ [0, 0, 0]
-	DOT    = "."  // for faces: seat.front
-	ASSIGN = "="  // for parameters: min=120
-	ARROW  = "->" // for directions: front -> [0, 1, 0]
+	HASH     = "#"  // for tags: #furniture
+	AT       = "@"  // for positions: @ [0, 0, 0]
+	DOT      = "."  // for faces: seat.front
+	ASSIGN   = "="  // for parameters: min=120
+	ARROW    = "->" // for directions: front -> [0, 1, 0]
+	MINUS    = "-"  // for negative values
+	ASTERISK = "*"  // match any
+	COMMA    = ","  // divide things
 
 	LBRACKET = "["
 	RBRACKET = "]"
