@@ -160,10 +160,12 @@ func TestParser_ItemDeclarations(t *testing.T) {
 }
 
 func TestParser_SpawnDeclarations(t *testing.T) {
+	id := uint64(1)
 	tests := []struct {
 		name           string
 		input          string
 		expectedItem   string
+		expectedID     *uint64
 		expectedCount  int
 		expectedAnchor *ast.Vec3
 	}{
@@ -185,6 +187,14 @@ func TestParser_SpawnDeclarations(t *testing.T) {
 			expectedItem:   "column",
 			expectedCount:  2,
 			expectedAnchor: &ast.Vec3{X: 100, Y: 200, Z: 0},
+		},
+		{
+			name:           "spawn with count, anchor and id",
+			input:          "spawn column id=1 2 @ [100, 200, 300]",
+			expectedItem:   "column",
+			expectedID:     &id,
+			expectedCount:  2,
+			expectedAnchor: &ast.Vec3{X: 100, Y: 200, Z: 300},
 		},
 	}
 
@@ -213,6 +223,14 @@ func TestParser_SpawnDeclarations(t *testing.T) {
 				}
 				if spawn.Anchor.X != tc.expectedAnchor.X || spawn.Anchor.Y != tc.expectedAnchor.Y || spawn.Anchor.Z != tc.expectedAnchor.Z {
 					t.Errorf("spawn anchor: expected %v, got %v", tc.expectedAnchor, spawn.Anchor)
+				}
+			}
+			if tc.expectedID != nil {
+				if spawn.ID == nil {
+					t.Fatalf("expected ID %v, got nil", tc.expectedID)
+				}
+				if *spawn.ID != *tc.expectedID {
+					t.Fatalf("expected ID %d, got %d", *tc.expectedID, *spawn.ID)
 				}
 			}
 		})
