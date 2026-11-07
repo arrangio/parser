@@ -32,8 +32,8 @@ type SelectorKind int
 
 const (
 	SelectorWildcard SelectorKind = iota // matches all entities (*)
-	SelectorTag                           // matches entities by tag (#furniture)
-	SelectorItem                          // matches entities by template name (chair)
+	SelectorTag                          // matches entities by tag (#furniture)
+	SelectorItem                         // matches entities by template name (chair)
 )
 
 // `Selector` represents a target or obstacle selector
@@ -118,6 +118,7 @@ func (i *ItemDecl) Pos() (int, int) {
 type SpawnDecl struct {
 	Token    token.Token
 	ItemName string
+	ID       *uint64
 	Count    int   // defaults to 1 if omitted
 	Anchor   *Vec3 // optional initial placement anchor
 }

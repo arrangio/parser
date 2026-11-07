@@ -37,6 +37,7 @@ const (
 	RULE       = "rule"
 	STATIC     = "static"
 	CAN_ROTATE = "can_rotate"
+	ID         = "id"
 )
 
 // distinguish keywords from identifiers
@@ -47,6 +48,7 @@ var keywords = map[string]TokenType{
 	"rule":       RULE,
 	"static":     STATIC,
 	"can_rotate": CAN_ROTATE,
+	"id":         ID,
 }
 
 // `LookupIndent` checks whether the given identifier is a keyword or not

@@ -238,15 +238,26 @@ func (p *Parser) parseItem() *ast.ItemDecl {
 	}
 }
 
-// spawn <name> (<count>)? (@ [x, y, z])?
+// spawn <name> (id=n)? (<count>)? (@ [x, y, z])?
 func (p *Parser) parseSpawn() *ast.SpawnDecl {
 	tok := p.tok
 	p.next() // skip 'spawn'
 
 	name := p.expect(token.IDENT)
+
+	var id *uint64
 	count := 1
-	if p.is(token.INT) {
-		count = int(p.parseInt())
+
+	for {
+		if p.match(token.ID) {
+			p.expect(token.ASSIGN)
+			val := uint64(p.parseInt())
+			id = &val
+		} else if p.is(token.INT) {
+			count = int(p.parseInt())
+		} else {
+			break
+		}
 	}
 
 	var anchor *ast.Vec3
@@ -258,6 +269,7 @@ func (p *Parser) parseSpawn() *ast.SpawnDecl {
 	return &ast.SpawnDecl{
 		Token:    tok,
 		ItemName: name,
+		ID:       id,
 		Count:    count,
 		Anchor:   anchor,
 	}
