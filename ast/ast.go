@@ -83,6 +83,21 @@ func (f Facing) Pos() (int, int) {
 	return f.Token.Line, f.Token.Col
 }
 
+// `SceneDecl` represents the scene/world boundaries.
+// scene [1000, 800, 300] (@ [0, 0, 0])?
+// scene bounds [0, 0, 0] to [1000, 800, 300]
+type SceneDecl struct {
+	Token  token.Token
+	Min    Vec3
+	Max    Vec3
+	Size   Vec3
+	Anchor *Vec3 // optional anchor, can be omitted
+}
+
+func (s *SceneDecl) Pos() (int, int) {
+	return s.Token.Line, s.Token.Col
+}
+
 // `ZoneDecl` represents a `zone` declaration.
 // Example: zone room [1000, 800, 300] @ [0, 0, 0] #indoor
 type ZoneDecl struct {
@@ -147,6 +162,7 @@ func (r *RuleDecl) Pos() (int, int) {
 
 // `Program` is the root node of the AST representing a complete DSL "program"
 type Program struct {
+	Scene  *SceneDecl
 	Zones  []*ZoneDecl
 	Items  []*ItemDecl
 	Spawns []*SpawnDecl
@@ -154,6 +170,9 @@ type Program struct {
 }
 
 func (p *Program) Pos() (int, int) {
+	if p.Scene != nil {
+		return p.Scene.Pos()
+	}
 	if len(p.Zones) > 0 {
 		return p.Zones[0].Pos()
 	}

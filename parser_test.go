@@ -8,6 +8,82 @@ import (
 	"github.com/arrangio/parser/lexer"
 )
 
+func TestParser_SceneDeclarations(t *testing.T) {
+	tests := []struct {
+		name           string
+		input          string
+		expectedMin    ast.Vec3
+		expectedMax    ast.Vec3
+		expectedSize   ast.Vec3
+		expectedAnchor *ast.Vec3
+	}{
+		{
+			name:         "simple scene size",
+			input:        "scene [1000, 800, 300]",
+			expectedMin:  ast.Vec3{X: 0, Y: 0, Z: 0},
+			expectedMax:  ast.Vec3{X: 1000, Y: 800, Z: 300},
+			expectedSize: ast.Vec3{X: 1000, Y: 800, Z: 300},
+		},
+		{
+			name:           "scene size with anchor",
+			input:          "scene [1000, 800, 300] @ [100, 200, 50]",
+			expectedMin:    ast.Vec3{X: 100, Y: 200, Z: 50},
+			expectedMax:    ast.Vec3{X: 1100, Y: 1000, Z: 350},
+			expectedSize:   ast.Vec3{X: 1000, Y: 800, Z: 300},
+			expectedAnchor: &ast.Vec3{X: 100, Y: 200, Z: 50},
+		},
+		{
+			name:           "scene bounds from zero",
+			input:          "scene bounds [0, 0, 0] to [1000, 800, 300]",
+			expectedMin:    ast.Vec3{X: 0, Y: 0, Z: 0},
+			expectedMax:    ast.Vec3{X: 1000, Y: 800, Z: 300},
+			expectedSize:   ast.Vec3{X: 1000, Y: 800, Z: 300},
+			expectedAnchor: &ast.Vec3{X: 0, Y: 0, Z: 0},
+		},
+		{
+			name:           "scene bounds centered",
+			input:          "scene bounds [-500, -400, 0] to [500, 400, 300]",
+			expectedMin:    ast.Vec3{X: -500, Y: -400, Z: 0},
+			expectedMax:    ast.Vec3{X: 500, Y: 400, Z: 300},
+			expectedSize:   ast.Vec3{X: 1000, Y: 800, Z: 300},
+			expectedAnchor: &ast.Vec3{X: -500, Y: -400, Z: 0},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			l := lexer.New(tc.input)
+			p := parser.New(l)
+			prog, err := p.ParseProgram()
+			if err != nil {
+				t.Fatalf("ParseProgram failed: %v, errors=%v", err, p.Errors())
+			}
+			if prog.Scene == nil {
+				t.Fatalf("expected scene to be parsed, got nil")
+			}
+
+			s := prog.Scene
+			if s.Min.X != tc.expectedMin.X || s.Min.Y != tc.expectedMin.Y || s.Min.Z != tc.expectedMin.Z {
+				t.Errorf("scene Min: expected %v, got %v", tc.expectedMin, s.Min)
+			}
+			if s.Max.X != tc.expectedMax.X || s.Max.Y != tc.expectedMax.Y || s.Max.Z != tc.expectedMax.Z {
+				t.Errorf("scene Max: expected %v, got %v", tc.expectedMax, s.Max)
+			}
+			if s.Size.X != tc.expectedSize.X || s.Size.Y != tc.expectedSize.Y || s.Size.Z != tc.expectedSize.Z {
+				t.Errorf("scene Size: expected %v, got %v", tc.expectedSize, s.Size)
+			}
+			if tc.expectedAnchor != nil {
+				if s.Anchor == nil {
+					t.Fatalf("expected anchor %v, got nil", tc.expectedAnchor)
+				}
+				if s.Anchor.X != tc.expectedAnchor.X || s.Anchor.Y != tc.expectedAnchor.Y || s.Anchor.Z != tc.expectedAnchor.Z {
+					t.Errorf("scene Anchor: expected %v, got %v", tc.expectedAnchor, *s.Anchor)
+				}
+			}
+		})
+	}
+}
+
 func TestParser_ZoneDeclarations(t *testing.T) {
 	tests := []struct {
 		name           string

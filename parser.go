@@ -68,7 +68,8 @@ func (p *Parser) Errors() []string {
 }
 
 func (p *Parser) isAtTopLevel() bool {
-	return p.is(token.ZONE) ||
+	return p.is(token.SCENE) ||
+		p.is(token.ZONE) ||
 		p.is(token.ITEM) ||
 		p.is(token.SPAWN) ||
 		p.is(token.RULE) ||
@@ -99,6 +100,15 @@ func (p *Parser) ParseProgram() (*ast.Program, error) {
 		prevErrCount := len(p.errors)
 
 		switch p.tok.Type {
+		case token.SCENE:
+			scene := p.parseScene()
+			if scene != nil {
+				if prog.Scene != nil {
+					p.errorf("duplicate scene declaration")
+				} else {
+					prog.Scene = scene
+				}
+			}
 		case token.ZONE:
 			zone := p.parseZone()
 			if zone != nil {
@@ -162,6 +172,68 @@ func (p *Parser) parseVec3() ast.Vec3 {
 	p.expect(token.RBRACKET)
 
 	return ast.Vec3{Token: tok, X: x, Y: y, Z: z}
+}
+
+// scene [w, h, d] (@ [x, y, z])?
+// scene bounds [min_x, min_y, min_z] to [max_x, max_y, max_z]
+func (p *Parser) parseScene() *ast.SceneDecl {
+	tok := p.tok
+	p.next() // skip `scene`
+
+	// scene bounds [min] to [max]
+	if p.is(token.BOUNDS) || (p.is(token.IDENT) && p.tok.Literal == "bounds") {
+		p.next() // skip 'bounds'
+		minVec := p.parseVec3()
+
+		if p.is(token.TO) || (p.is(token.IDENT) && p.tok.Literal == "to") {
+			p.next() // skip 'to'
+		} else {
+			p.errorf("expected 'to' after bounds min vector, got %s (%q)", p.tok.Type, p.tok.Literal)
+		}
+		maxVec := p.parseVec3()
+
+		sizeVec := ast.Vec3{
+			Token: minVec.Token,
+			X:     maxVec.X - minVec.X,
+			Y:     maxVec.Y - minVec.Y,
+			Z:     maxVec.Z - minVec.Z,
+		}
+		anchorVec := minVec
+
+		return &ast.SceneDecl{
+			Token:  tok,
+			Min:    minVec,
+			Max:    maxVec,
+			Size:   sizeVec,
+			Anchor: &anchorVec,
+		}
+	}
+
+	// scene [w, h, d] (@ [x, y, z])?
+	sizeVec := p.parseVec3()
+	var anchor *ast.Vec3
+	minVec := ast.Vec3{Token: sizeVec.Token, X: 0, Y: 0, Z: 0}
+
+	if p.match(token.AT) {
+		a := p.parseVec3()
+		anchor = &a
+		minVec = a
+	}
+
+	maxVec := ast.Vec3{
+		Token: sizeVec.Token,
+		X:     minVec.X + sizeVec.X,
+		Y:     minVec.Y + sizeVec.Y,
+		Z:     minVec.Z + sizeVec.Z,
+	}
+
+	return &ast.SceneDecl{
+		Token:  tok,
+		Min:    minVec,
+		Max:    maxVec,
+		Size:   sizeVec,
+		Anchor: anchor,
+	}
 }
 
 // zone <name> [w, h, d] (@ [x, y, z])? (#tag)*
@@ -238,7 +310,7 @@ func (p *Parser) parseItem() *ast.ItemDecl {
 	}
 }
 
-// spawn <name> (id=n)? (<count>)? (@ [x, y, z])?
+// spawn <name> (id=n | count | @ [x, y, z])*
 func (p *Parser) parseSpawn() *ast.SpawnDecl {
 	tok := p.tok
 	p.next() // skip 'spawn'
@@ -246,24 +318,22 @@ func (p *Parser) parseSpawn() *ast.SpawnDecl {
 	name := p.expect(token.IDENT)
 
 	var id *uint64
+	var anchor *ast.Vec3
 	count := 1
 
-	for {
+	for !p.isAtTopLevel() {
 		if p.match(token.ID) {
 			p.expect(token.ASSIGN)
 			val := uint64(p.parseInt())
 			id = &val
 		} else if p.is(token.INT) {
 			count = int(p.parseInt())
+		} else if p.match(token.AT) {
+			a := p.parseVec3()
+			anchor = &a
 		} else {
 			break
 		}
-	}
-
-	var anchor *ast.Vec3
-	if p.match(token.AT) {
-		a := p.parseVec3()
-		anchor = &a
 	}
 
 	return &ast.SpawnDecl{
@@ -340,7 +410,7 @@ func (p *Parser) parseRule() *ast.RuleDecl {
 			key := p.expect(token.IDENT)
 			p.expect(token.ASSIGN)
 			rule.Params[key] = p.parseParamValue()
-		} else if p.is(token.IDENT) && p.tok.Literal == "to" {
+		} else if p.is(token.TO) || (p.is(token.IDENT) && p.tok.Literal == "to") {
 			p.next() // skip "to"
 			sec := p.parseSelector()
 			rule.Secondary = &sec

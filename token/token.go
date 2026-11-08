@@ -31,6 +31,9 @@ const (
 	RBRACE   = "}"
 
 	// keywords
+	SCENE      = "scene"
+	BOUNDS     = "bounds"
+	TO         = "to"
 	ZONE       = "zone"
 	ITEM       = "item"
 	SPAWN      = "spawn"
@@ -42,6 +45,9 @@ const (
 
 // distinguish keywords from identifiers
 var keywords = map[string]TokenType{
+	"scene":      SCENE,
+	"bounds":     BOUNDS,
+	"to":         TO,
 	"zone":       ZONE,
 	"item":       ITEM,
 	"spawn":      SPAWN,
