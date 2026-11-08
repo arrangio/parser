@@ -21,46 +21,54 @@ const (
 	DOT      = "."  // for faces: seat.front
 	ASSIGN   = "="  // for parameters: min=120
 	ARROW    = "->" // for directions: front -> [0, 1, 0]
-	MINUS    = "-"  // for negative values
-	ASTERISK = "*"  // match any
+	MINUS    = "-"  // for negative values and subtraction
+	PLUS     = "+"  // addition
+	ASTERISK = "*"  // multiplication or match any
+	SLASH    = "/"  // division
 	COMMA    = ","  // divide things
+
+	// Comparison operators
+	EQ     = "=="
+	NOT_EQ = "!="
+	LT     = "<"
+	LTE    = "<="
+	GT     = ">"
+	GTE    = ">="
+	BANG   = "!"
+	DOTDOT = ".."
 
 	LBRACKET = "["
 	RBRACKET = "]"
 	LBRACE   = "{"
 	RBRACE   = "}"
+	LPAREN   = "("
+	RPAREN   = ")"
 
 	// keywords
-	SCENE      = "scene"
-	BOUNDS     = "bounds"
-	TO         = "to"
-	ZONE       = "zone"
-	ITEM       = "item"
-	SPAWN      = "spawn"
-	RULE       = "rule"
-	STATIC     = "static"
-	CAN_ROTATE = "can_rotate"
-	ID         = "id"
+	SCENE        = "scene"
+	BOUNDS       = "bounds"
+	TO           = "to"
+	ZONE         = "zone"
+	ITEM         = "item"
+	SPAWN        = "spawn"
+	RULE         = "rule"
+	RULE_DEF     = "rule_def"
+	STATIC       = "static"
+	CAN_ROTATE   = "can_rotate"
+	ID           = "id"
+	DIST         = "dist"
+	IN           = "in"
+	NOT          = "not"
+	NO_COLLISION = "no_collision"
 )
 
-// distinguish keywords from identifiers
-var keywords = map[string]TokenType{
-	"scene":      SCENE,
-	"bounds":     BOUNDS,
-	"to":         TO,
-	"zone":       ZONE,
-	"item":       ITEM,
-	"spawn":      SPAWN,
-	"rule":       RULE,
-	"static":     STATIC,
-	"can_rotate": CAN_ROTATE,
-	"id":         ID,
-}
-
-// `LookupIndent` checks whether the given identifier is a keyword or not
+// LookupIdent checks whether the given identifier is a keyword or not
 func LookupIdent(ident string) TokenType {
-	if tok, ok := keywords[ident]; ok {
-		return tok
+	switch ident {
+	case SCENE, BOUNDS, TO, ZONE, ITEM, SPAWN, RULE, RULE_DEF,
+		STATIC, CAN_ROTATE, ID, DIST, IN, NOT, NO_COLLISION:
+		return TokenType(ident)
+	default:
+		return IDENT
 	}
-	return IDENT
 }

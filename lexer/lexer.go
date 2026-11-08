@@ -72,45 +72,25 @@ func (l *Lexer) NextToken() token.Token {
 	var tok token.Token
 
 	switch l.ch {
-	case '[':
-		tok = newToken(token.LBRACKET, l.ch, tokLine, tokCol)
-	case ']':
-		tok = newToken(token.RBRACKET, l.ch, tokLine, tokCol)
-	case '{':
-		tok = newToken(token.LBRACE, l.ch, tokLine, tokCol)
-	case '}':
-		tok = newToken(token.RBRACE, l.ch, tokLine, tokCol)
-	case '@':
-		tok = newToken(token.AT, l.ch, tokLine, tokCol)
-	case '#':
-		tok = newToken(token.HASH, l.ch, tokLine, tokCol)
-	case '.':
-		tok = newToken(token.DOT, l.ch, tokLine, tokCol)
-	case ',':
-		tok = newToken(token.COMMA, l.ch, tokLine, tokCol)
-	case '*':
-		tok = newToken(token.ASTERISK, l.ch, tokLine, tokCol)
-	case '=':
-		tok = newToken(token.ASSIGN, l.ch, tokLine, tokCol)
-	case '-':
-		if l.peekChar() == '>' {
-			l.readChar()
-			l.readChar()
-			return token.Token{
-				Type:    token.ARROW,
-				Literal: "->",
-				Line:    tokLine,
-				Col:     tokCol,
-			}
-		}
-		tok = newToken(token.MINUS, l.ch, tokLine, tokCol)
-	case 0:
-		return token.Token{
-			Type:    token.EOF,
-			Literal: "",
-			Line:    tokLine,
-			Col:     tokCol,
-		}
+	case '[': tok = newToken(token.LBRACKET, l.ch, tokLine, tokCol)
+	case ']': tok = newToken(token.RBRACKET, l.ch, tokLine, tokCol)
+	case '{': tok = newToken(token.LBRACE, l.ch, tokLine, tokCol)
+	case '}': tok = newToken(token.RBRACE, l.ch, tokLine, tokCol)
+	case '(': tok = newToken(token.LPAREN, l.ch, tokLine, tokCol)
+	case ')': tok = newToken(token.RPAREN, l.ch, tokLine, tokCol)
+	case '@': tok = newToken(token.AT, l.ch, tokLine, tokCol)
+	case '#': tok = newToken(token.HASH, l.ch, tokLine, tokCol)
+	case '+': tok = newToken(token.PLUS, l.ch, tokLine, tokCol)
+	case '/': tok = newToken(token.SLASH, l.ch, tokLine, tokCol)
+	case ',': tok = newToken(token.COMMA, l.ch, tokLine, tokCol)
+	case '*': tok = newToken(token.ASTERISK, l.ch, tokLine, tokCol)
+	case '.': return l.match('.', token.DOTDOT, "..", token.DOT, tokLine, tokCol)
+	case '=': return l.match('=', token.EQ, "==", token.ASSIGN, tokLine, tokCol)
+	case '!': return l.match('=', token.NOT_EQ, "!=", token.BANG, tokLine, tokCol)
+	case '<': return l.match('=', token.LTE, "<=", token.LT, tokLine, tokCol)
+	case '>': return l.match('=', token.GTE, ">=", token.GT, tokLine, tokCol)
+	case '-': return l.match('>', token.ARROW, "->", token.MINUS, tokLine, tokCol)
+	case 0:   return token.Token{Type: token.EOF, Line: tokLine, Col: tokCol}
 	default:
 		if isLetter(l.ch) {
 			ident := l.readIdentifier()
@@ -159,6 +139,17 @@ func isLetter(ch byte) bool {
 
 func isDigit(ch byte) bool {
 	return ch >= '0' && ch <= '9'
+}
+
+func (l *Lexer) match(peek byte, twoType token.TokenType, twoLit string, oneType token.TokenType, line, col int) token.Token {
+	if l.peekChar() == peek {
+		l.readChar()
+		l.readChar()
+		return token.Token{Type: twoType, Literal: twoLit, Line: line, Col: col}
+	}
+	tok := newToken(oneType, l.ch, line, col)
+	l.readChar()
+	return tok
 }
 
 func newToken(tokenType token.TokenType, ch byte, line, col int) token.Token {
