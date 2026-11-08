@@ -160,30 +160,120 @@ func (r *RuleDecl) Pos() (int, int) {
 	return r.Token.Line, r.Token.Col
 }
 
+type (
+	// Expr represents any expression node in the AST
+	Expr interface {
+		Node
+		exprNode()
+	}
+
+	BinaryExpr struct {
+		Token       token.Token
+		Left, Right Expr
+		Op          token.TokenType
+	}
+	UnaryExpr struct {
+		Token token.Token
+		Op    token.TokenType
+		Right Expr
+	}
+	NumberExpr struct {
+		Token token.Token
+		Value int64
+	}
+	IdentExpr struct {
+		Token token.Token
+		Name  string
+	}
+	MemberExpr struct {
+		Token    token.Token
+		Object   Expr
+		Property string
+	}
+	CallExpr struct {
+		Token    token.Token
+		Function string
+		Args     []Expr
+	}
+	VectorExpr struct {
+		Token   token.Token
+		X, Y, Z Expr
+	}
+	RangeExpr struct {
+		Token    token.Token
+		From, To Expr
+	}
+
+	ConstraintStmt struct {
+		Token token.Token
+		Expr  Expr
+	}
+	RuleParam struct {
+		Name         string
+		DefaultValue Expr
+	}
+	RuleDefDecl struct {
+		Token  token.Token
+		Name   string
+		Params []RuleParam
+		Body   []Node
+	}
+	RuleInvocationStmt struct {
+		Token  token.Token
+		Name   string
+		Args   []Expr
+		Params map[string]Expr
+	}
+)
+
+func (*BinaryExpr) exprNode() {}
+func (*UnaryExpr) exprNode()  {}
+func (*NumberExpr) exprNode() {}
+func (*IdentExpr) exprNode()  {}
+func (*MemberExpr) exprNode() {}
+func (*CallExpr) exprNode()   {}
+func (*VectorExpr) exprNode() {}
+func (*RangeExpr) exprNode()  {}
+
+func (e *BinaryExpr) Pos() (int, int)         { return e.Token.Line, e.Token.Col }
+func (e *UnaryExpr) Pos() (int, int)          { return e.Token.Line, e.Token.Col }
+func (e *NumberExpr) Pos() (int, int)         { return e.Token.Line, e.Token.Col }
+func (e *IdentExpr) Pos() (int, int)          { return e.Token.Line, e.Token.Col }
+func (e *MemberExpr) Pos() (int, int)         { return e.Token.Line, e.Token.Col }
+func (e *CallExpr) Pos() (int, int)           { return e.Token.Line, e.Token.Col }
+func (e *VectorExpr) Pos() (int, int)         { return e.Token.Line, e.Token.Col }
+func (e *RangeExpr) Pos() (int, int)          { return e.Token.Line, e.Token.Col }
+func (c *ConstraintStmt) Pos() (int, int)     { return c.Token.Line, c.Token.Col }
+func (r *RuleDefDecl) Pos() (int, int)        { return r.Token.Line, r.Token.Col }
+func (r *RuleInvocationStmt) Pos() (int, int) { return r.Token.Line, r.Token.Col }
+
 // `Program` is the root node of the AST representing a complete DSL "program"
 type Program struct {
-	Scene  *SceneDecl
-	Zones  []*ZoneDecl
-	Items  []*ItemDecl
-	Spawns []*SpawnDecl
-	Rules  []*RuleDecl
+	Scene       *SceneDecl
+	Zones       []*ZoneDecl
+	Items       []*ItemDecl
+	Spawns      []*SpawnDecl
+	Rules       []*RuleDecl
+	RuleDefs    []*RuleDefDecl
+	Constraints []*ConstraintStmt
+	Invocations []*RuleInvocationStmt
 }
 
 func (p *Program) Pos() (int, int) {
-	if p.Scene != nil {
+	switch {
+	case p.Scene != nil:
 		return p.Scene.Pos()
-	}
-	if len(p.Zones) > 0 {
+	case len(p.Zones) > 0:
 		return p.Zones[0].Pos()
-	}
-	if len(p.Items) > 0 {
+	case len(p.Items) > 0:
 		return p.Items[0].Pos()
-	}
-	if len(p.Spawns) > 0 {
+	case len(p.Spawns) > 0:
 		return p.Spawns[0].Pos()
-	}
-	if len(p.Rules) > 0 {
+	case len(p.Rules) > 0:
 		return p.Rules[0].Pos()
+	case len(p.Constraints) > 0:
+		return p.Constraints[0].Pos()
+	default:
+		return 1, 1
 	}
-	return 1, 1
 }
