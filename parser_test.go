@@ -507,6 +507,102 @@ rule orientation chair.front -> [0, 1, 0]
 	}
 }
 
+func TestParser_MathConstraints(t *testing.T) {
+	input := `
+dist(chair, desk) >= 15 + 5 * 2
+chair.z == 0
+chair.x == desk.x
+chair.front -> [0, 1, 0]
+chair in [0, 0, 0]..[1000, 800, 300]
+chair not in forbidden_zone
+no_collision *
+`
+	l := lexer.New(input)
+	p := parser.New(l)
+	prog, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf("ParseProgram failed: %v, errors=%v", err, p.Errors())
+	}
+
+	if len(prog.Constraints) != 7 {
+		t.Fatalf("expected 7 constraints, got %d", len(prog.Constraints))
+	}
+
+	// 1. dist(chair, desk) >= 15 + 5 * 2
+	c1, ok := prog.Constraints[0].Expr.(*ast.BinaryExpr)
+	if !ok || c1.Op != "==" && c1.Op != ">=" {
+		t.Fatalf("constraint 1: expected BinaryExpr with >=, got %T (%v)", prog.Constraints[0].Expr, c1)
+	}
+
+	// 2. chair.z == 0
+	c2, ok := prog.Constraints[1].Expr.(*ast.BinaryExpr)
+	if !ok || c2.Op != "==" {
+		t.Fatalf("constraint 2: expected BinaryExpr with ==, got %T (%v)", prog.Constraints[1].Expr, c2)
+	}
+	mem, ok := c2.Left.(*ast.MemberExpr)
+	if !ok || mem.Property != "z" {
+		t.Errorf("constraint 2: expected MemberExpr with property 'z', got %v", c2.Left)
+	}
+
+	// 7. no_collision *
+	c7, ok := prog.Constraints[6].Expr.(*ast.CallExpr)
+	if !ok || c7.Function != "no_collision" {
+		t.Fatalf("constraint 7: expected CallExpr with no_collision, got %v", prog.Constraints[6].Expr)
+	}
+}
+
+func TestParser_RuleDefAndInvocation(t *testing.T) {
+	input := `
+rule_def workstation(seat, desk, gap=15) {
+    dist(seat, desk) >= gap
+    dist(seat, desk) <= 100
+    seat.front -> desk
+    seat.z == 0
+    desk.z == 0
+}
+
+rule workstation chair desk gap=20
+`
+	l := lexer.New(input)
+	p := parser.New(l)
+	prog, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf("ParseProgram failed: %v, errors=%v", err, p.Errors())
+	}
+
+	if len(prog.RuleDefs) != 1 {
+		t.Fatalf("expected 1 rule_def, got %d", len(prog.RuleDefs))
+	}
+
+	rd := prog.RuleDefs[0]
+	if rd.Name != "workstation" {
+		t.Errorf("expected rule_def name 'workstation', got %q", rd.Name)
+	}
+	if len(rd.Params) != 3 {
+		t.Fatalf("expected 3 params, got %d", len(rd.Params))
+	}
+	if rd.Params[2].Name != "gap" || rd.Params[2].DefaultValue == nil {
+		t.Errorf("expected param 3 'gap' with default value, got %v", rd.Params[2])
+	}
+	if len(rd.Body) != 5 {
+		t.Fatalf("expected 5 statements in rule_def body, got %d", len(rd.Body))
+	}
+
+	if len(prog.Invocations) != 1 {
+		t.Fatalf("expected 1 invocation, got %d", len(prog.Invocations))
+	}
+	inv := prog.Invocations[0]
+	if inv.Name != "workstation" {
+		t.Errorf("expected invocation name 'workstation', got %q", inv.Name)
+	}
+	if len(inv.Args) != 2 {
+		t.Errorf("expected 2 positional args, got %d", len(inv.Args))
+	}
+	if _, ok := inv.Params["gap"]; !ok {
+		t.Errorf("expected named param 'gap' in invocation, got %v", inv.Params)
+	}
+}
+
 func TestParser_SyntaxErrors(t *testing.T) {
 	tests := []struct {
 		name        string
